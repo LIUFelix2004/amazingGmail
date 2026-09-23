@@ -240,32 +240,42 @@ def cmd_suspend(svc, args, suspended: bool):
                    args.dry_run, "停用" if suspended else "恢复", args.pause)
 
 
-def cmd_audit(svc, args):
-    fields = ["primaryEmail", "fullName", "orgUnitPath", "isAdmin", "suspended",
-              "isEnrolledIn2Sv", "isEnforcedIn2Sv", "hasRecoveryEmail", "hasRecoveryPhone",
-              "lastLoginTime", "creationTime"]
+AUDIT_FIELDS = ["primaryEmail", "fullName", "orgUnitPath", "isAdmin", "suspended",
+                "isEnrolledIn2Sv", "isEnforcedIn2Sv", "hasRecoveryEmail", "hasRecoveryPhone",
+                "lastLoginTime", "creationTime"]
+
+
+def user_row(u: dict) -> dict:
+    return {
+        "primaryEmail": u["primaryEmail"],
+        "fullName": u.get("name", {}).get("fullName", ""),
+        "orgUnitPath": u.get("orgUnitPath", ""),
+        "isAdmin": u.get("isAdmin", False),
+        "suspended": u.get("suspended", False),
+        "isEnrolledIn2Sv": u.get("isEnrolledIn2Sv", False),
+        "isEnforcedIn2Sv": u.get("isEnforcedIn2Sv", False),
+        "hasRecoveryEmail": bool(u.get("recoveryEmail")),
+        "hasRecoveryPhone": bool(u.get("recoveryPhone")),
+        "lastLoginTime": u.get("lastLoginTime", ""),
+        "creationTime": u.get("creationTime", ""),
+    }
+
+
+def fetch_users(svc, org_unit: str | None = None) -> list[dict]:
     rows, token = [], None
-    query = f"orgUnitPath='{args.org_unit}'" if args.org_unit else None
+    query = f"orgUnitPath='{org_unit}'" if org_unit else None
     while True:
         resp = execute(svc.users().list(customer="my_customer", maxResults=500, orderBy="email",
                                         projection="full", query=query, pageToken=token))
-        for u in resp.get("users", []):
-            rows.append({
-                "primaryEmail": u["primaryEmail"],
-                "fullName": u.get("name", {}).get("fullName", ""),
-                "orgUnitPath": u.get("orgUnitPath", ""),
-                "isAdmin": u.get("isAdmin", False),
-                "suspended": u.get("suspended", False),
-                "isEnrolledIn2Sv": u.get("isEnrolledIn2Sv", False),
-                "isEnforcedIn2Sv": u.get("isEnforcedIn2Sv", False),
-                "hasRecoveryEmail": bool(u.get("recoveryEmail")),
-                "hasRecoveryPhone": bool(u.get("recoveryPhone")),
-                "lastLoginTime": u.get("lastLoginTime", ""),
-                "creationTime": u.get("creationTime", ""),
-            })
+        rows.extend(user_row(u) for u in resp.get("users", []))
         token = resp.get("nextPageToken")
         if not token:
-            break
+            return rows
+
+
+def cmd_audit(svc, args):
+    fields = AUDIT_FIELDS
+    rows = fetch_users(svc, args.org_unit)
 
     with open(args.out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
