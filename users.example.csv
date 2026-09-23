@@ -1,0 +1,4 @@
+primaryEmail,givenName,familyName,orgUnitPath,recoveryEmail,recoveryPhone
+zhang.san@example.com,San,Zhang,/Staff/Enforce2SV,,
+li.si@example.com,Si,Li,/Staff/Enforce2SV,lisi.personal@example.org,+8613800000000
+support01@example.com,Support,01,/Staff/Support,,

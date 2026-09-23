@@ -1,0 +1,8 @@
+# 凭据与含密码的输出，切勿提交
+service-account*.json
+*.key.json
+created_users*.csv
+reset_passwords*.csv
+audit*.csv
+__pycache__/
+.venv/
